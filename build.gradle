@@ -19,6 +19,7 @@ repositories {
             includeGroup "dev.latvian.apps"
         }
     }
+    mavenCentral()
 }
 
 base {
@@ -86,6 +87,7 @@ configurations {
 
 dependencies {
     implementation "dev.latvian.apps:tiny-java-server:$server_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
@@ -131,4 +133,7 @@ idea {
         downloadSources = true
         downloadJavadoc = true
     }
+}
+kotlin {
+    jvmToolchain(21)
 }
