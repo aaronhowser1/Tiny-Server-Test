@@ -28,8 +28,8 @@ public class ClientEventHandler {
 		s.setKeepAliveTimeout(Duration.ofSeconds(5L));
 		s.setMaxKeepAliveConnections(5);
 		s.get("/blocks", ClientEventHandler::getBlocks);
-		s.get("/blocks/{namespace}/{id}", ClientEventHandler::getBlockInfo);
-		s.post("/blocks/{x}/{y}/{z}/{namespace}/{id}", ClientEventHandler::postBlock);
+		s.get("/blocks/{namespace}/<id>", ClientEventHandler::getBlockInfo);
+		s.post("/blocks/{x}/{y}/{z}/{namespace/<id>", ClientEventHandler::postBlock);
 
 		System.out.println("Started server at http://localhost:" + s.start());
 
