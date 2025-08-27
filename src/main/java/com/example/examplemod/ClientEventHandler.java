@@ -3,6 +3,11 @@ package com.example.examplemod;
 import dev.latvian.apps.tinyserver.HTTPServer;
 import dev.latvian.apps.tinyserver.http.HTTPRequest;
 import dev.latvian.apps.tinyserver.http.response.HTTPResponse;
+import dev.latvian.apps.tinyserver.http.response.HTTPStatus;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -55,11 +60,32 @@ public class ClientEventHandler {
 	}
 
 	public static HTTPResponse postBlock(HTTPRequest req) {
+		var server = Minecraft.getInstance().getSingleplayerServer();
+		if (server == null) {
+			return HTTPStatus.INTERNAL_ERROR.text("No local server");
+		}
+
+		String namespace = req.variable("namespace").asString();
+		String id = req.variable("id").asString();
+
+		var blockRegistry = BuiltInRegistries.BLOCK;
+		var block = blockRegistry.get(ResourceLocation.fromNamespaceAndPath(namespace, id));
+		if (block.isEmpty()) {
+			return HTTPStatus.BAD_REQUEST.text("Invalid block: " + namespace + ":" + id);
+		}
+
+		var blockState = block.get().value().defaultBlockState();
+
 		int x = req.variable("x").asInt();
 		int y = req.variable("y").asInt();
 		int z = req.variable("z").asInt();
-		String namespace = req.variable("namespace").asString();
-		String id = req.variable("id").asString();
+
+		server.execute(() -> {
+			var overworld = server.overworld();
+			var blockPos = new BlockPos(x, y, z);
+			overworld.setBlockAndUpdate(blockPos, blockState);
+		});
+
 		return HTTPResponse.ok().text(String.format("Set block at (%d, %d, %d) to %s:%s", x, y, z, namespace, id));
 	}
 
