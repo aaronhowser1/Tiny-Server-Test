@@ -86,7 +86,7 @@ configurations {
 }
 
 dependencies {
-    implementation "dev.latvian.apps:tiny-java-server:$server_version"
+    additionalRuntimeClasspath(implementation('dev.latvian.apps:tiny-java-server:1.0.0-build.26'))
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
