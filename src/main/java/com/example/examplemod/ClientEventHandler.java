@@ -28,8 +28,8 @@ public class ClientEventHandler {
 		s.setKeepAliveTimeout(Duration.ofSeconds(5L));
 		s.setMaxKeepAliveConnections(5);
 		s.get("/blocks", ClientEventHandler::getBlocks);
-		s.get("/blocks/<id>", ClientEventHandler::getBlockInfo);
-		s.post("/blocks/{x}/{y}/{z}/<id>", ClientEventHandler::postBlock);
+		s.get("/blocks/{namespace}/{id}", ClientEventHandler::getBlockInfo);
+		s.post("/blocks/{x}/{y}/{z}/{namespace}/{id}", ClientEventHandler::postBlock);
 
 		System.out.println("Started server at http://localhost:" + s.start());
 
@@ -49,16 +49,18 @@ public class ClientEventHandler {
 	}
 
 	public static HTTPResponse getBlockInfo(HTTPRequest req) {
-		var id = req.variable("id").asString();
-		return HTTPResponse.ok().text("Hello, World!");
+		String namespace = req.variable("namespace").asString();
+		String id = req.variable("id").asString();
+		return HTTPResponse.ok().text(String.format("Block: %s:%s", namespace, id));
 	}
 
 	public static HTTPResponse postBlock(HTTPRequest req) {
-		var x = req.variable("x").asInt();
-		var y = req.variable("y").asInt();
-		var z = req.variable("z").asInt();
-		var id = req.variable("id").asString();
-		return HTTPResponse.ok().text("Hello, World!");
+		int x = req.variable("x").asInt();
+		int y = req.variable("y").asInt();
+		int z = req.variable("z").asInt();
+		String namespace = req.variable("namespace").asString();
+		String id = req.variable("id").asString();
+		return HTTPResponse.ok().text(String.format("Set block at (%d, %d, %d) to %s:%s", x, y, z, namespace, id));
 	}
 
 }
