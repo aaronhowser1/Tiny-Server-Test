@@ -1,72 +1,69 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
-import java.security.MessageDigest
-
 plugins {
 	id 'java-library'
-	id 'idea'
 	id 'maven-publish'
 	id 'net.neoforged.moddev' version '2.0.107'
-
-	id 'org.jetbrains.kotlin.jvm' version '2.0.0'
+	id 'idea'
 }
 
-var ENV = System.getenv()
+tasks.named('wrapper', Wrapper).configure {
+	distributionType = Wrapper.DistributionType.BIN
+}
 
 version = mod_version
 group = mod_group_id
-base.archivesName = "${mod_id}-${minecraft_version}"
+
+repositories {
+	maven {
+		url "https://maven.latvian.dev/releases"
+		content {
+			includeGroup "dev.latvian.apps"
+		}
+	}
+}
+
+base {
+	archivesName = mod_id
+}
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
-compileKotlin.compilerOptions.jvmTarget = JvmTarget.JVM_21
 
 neoForge {
-	version = neo_version
-	// validateAccessTransformers = true // See https://github.com/neoforged/ModDevGradle/issues/236
+	version = project.neo_version
 
-	interfaceInjectionData {
-		from(file('interfaces.json'))
-		publish(file('interfaces.json'))
+	parchment {
+		mappingsVersion = project.parchment_mappings_version
+		minecraftVersion = project.parchment_minecraft_version
 	}
 
 	runs {
-		configureEach {
-			logLevel = org.slf4j.event.Level.INFO
-		}
-
-		client1 {
-			ideName = 'Client 1'
+		client {
 			client()
+
+			// Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
 			systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-
-			gameDirectory = file 'runs/client'
-
-			if (ENV.MC_CLIENT_ARGS) {
-				programArguments.addAll(ENV.MC_CLIENT_ARGS.split(' '))
-			}
-		}
-
-		client2 {
-			ideName = 'Client 2'
-			client()
-			systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-
-			gameDirectory = file 'runs/client'
-
-			if (ENV.MC_CLIENT_2_ARGS) {
-				programArguments.addAll(ENV.MC_CLIENT_2_ARGS.split(' '))
-			}
 		}
 
 		server {
-			ideName = 'Server'
 			server()
 			programArgument '--nogui'
 			systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+		}
+		gameTestServer {
+			type = "gameTestServer"
+			systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+		}
 
-			gameDirectory = file 'runs/server'
+		data {
+			clientData()
+
+			programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+		}
+
+		// applies to all the run configs above
+		configureEach {
+			systemProperty 'forge.logging.markers', 'REGISTRIES'
+
+			logLevel = org.slf4j.event.Level.DEBUG
 		}
 	}
 
@@ -83,48 +80,36 @@ configurations {
 	runtimeClasspath.extendsFrom localRuntime
 }
 
-repositories {
-	mavenLocal()
-
-	maven {
-		name = 'Kotlin for Forge'
-		url = 'https://thedarkcolour.github.io/KotlinForForge/'
-		content {
-			includeGroup "thedarkcolour"
-		}
-	}
-
-	maven {
-		url "https://maven.latvian.dev/releases"
-		content {
-			includeGroup "dev.latvian.apps"
-		}
-	}
-}
-
 dependencies {
-	implementation "thedarkcolour:kotlinforforge-neoforge:$kff_version"
-
 	implementation "dev.latvian.apps:tiny-java-server:$server_version"
 }
 
-tasks.withType(ProcessResources).configureEach {
+// This block of code expands all declared replace properties in the specified resource targets.
+// A missing property will result in an error. Properties are expanded using ${} Groovy notation.
+var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
 	var replaceProperties = [
-			minecraft_version   : minecraft_version,
-			neo_version         : neo_version,
-			loader_version_range: loader_version_range,
-			mod_name            : mod_name,
-			mod_version         : mod_version,
-			mod_authors         : mod_authors,
-			mod_description     : mod_description,
+			minecraft_version      : minecraft_version,
+			minecraft_version_range: minecraft_version_range,
+			neo_version            : neo_version,
+			mod_id                 : mod_id,
+			mod_name               : mod_name,
+			mod_license            : mod_license,
+			mod_version            : mod_version,
+			mod_authors            : mod_authors,
+			mod_description        : mod_description
 	]
 	inputs.properties replaceProperties
-
-	filesMatching(['META-INF/neoforge.mods.toml']) {
-		expand replaceProperties
-	}
+	expand replaceProperties
+	from "src/main/templates"
+	into "build/generated/sources/modMetadata"
 }
+// Include the output of "generateModMetadata" as an input directory for the build
+// this works with both building through Gradle and the IDE.
+sourceSets.main.resources.srcDir generateModMetadata
+// To avoid having to run "generateModMetadata" manually, make it run on every project reload
+neoForge.ideSyncTask generateModMetadata
 
+// Example configuration to allow publishing using the maven-publish plugin
 publishing {
 	publications {
 		register('mavenJava', MavenPublication) {
@@ -146,94 +131,5 @@ idea {
 	module {
 		downloadSources = true
 		downloadJavadoc = true
-
-		["client", "server"].each {
-			[
-					"config",
-					"crash-reports",
-					"debug",
-					"downloads",
-					"flashback",
-					"local",
-					"logs",
-					"mods",
-					"pack-sync",
-					"profilekeys",
-					"saves",
-					"voicechat_recordings",
-					"command_history.txt",
-					"options.txt",
-					"server.properties",
-					"world",
-			].each { ext ->
-				excludeDirs.add(file("runs/$it/$ext"))
-			}
-		}
-	}
-}
-
-afterEvaluate {
-	tasks.withType(JavaCompile) {
-		options.compilerArgs << "-Xmaxerrs" << "1000"
-	}
-}
-
-// function to get MD5 sting from file
-def getChecksum(file) { // file is File
-	def digest = MessageDigest.getInstance("MD5")
-	def inputStream = new FileInputStream(file)
-	try {
-		byte[] buffer = new byte[8192]
-		int bytesRead
-		while ((bytesRead = inputStream.read(buffer)) != -1) {
-			digest.update(buffer, 0, bytesRead)
-		}
-	} finally {
-		inputStream.close()
-	}
-	return digest.digest().encodeHex().toString()
-}
-
-tasks.register('updateClientWorld') {
-	group 'other'
-	description 'Copy save/region/* into runs/client/saves/world/region/*'
-
-	doLast {
-		// localBuildFile.setText(localBuildNumber.toString(), "UTF-8")
-
-		def sourceDir = file('world/region')
-
-		def destDir = file('runs/client/saves/world/region')
-		def entityDir = file('runs/client/saves/world/entities')
-
-		if (!destDir.exists()) {
-			destDir.mkdirs()
-		}
-
-		var copiedFiles = 0
-		var skippedFiles = 0
-		var deletedEntityFiles = 0
-
-		sourceDir.eachFileRecurse { file ->
-			if (file.isFile()) {
-				def relativePath = sourceDir.toPath().relativize(file.toPath())
-				def destFile = destDir.toPath().resolve(relativePath).toFile()
-
-				if (!destFile.exists() || file.length() != destFile.length() || getChecksum(file) != getChecksum(destFile)) {
-					println "Copying $file to $destFile"
-					Files.copy(file.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
-					copiedFiles++
-				} else {
-					skippedFiles++
-				}
-			}
-		}
-
-		entityDir.eachFile {
-			it.delete()
-			deletedEntityFiles++
-		}
-
-		println "Copied $copiedFiles files, skipped $skippedFiles files, deleted $deletedEntityFiles entity files"
 	}
 }

@@ -16,10 +16,11 @@ out
 # gradle
 build
 .gradle
-.kotlin
 
 # other
 eclipse
 run
 runs
-world
+run-data
+
+repo
