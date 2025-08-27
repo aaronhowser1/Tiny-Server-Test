@@ -1,13 +1,13 @@
 {
-  "itemGroup.tinyservertest": "Example Mod Tab",
-  "block.tinyservertest.example_block": "Example Block",
-  "item.tinyservertest.example_item": "Example Item",
+  "itemGroup.examplemod": "Example Mod Tab",
+  "block.examplemod.example_block": "Example Block",
+  "item.examplemod.example_item": "Example Item",
 
-  "tinyservertest.configuration.title": "Example Mod Configs",
-  "tinyservertest.configuration.section.tinyservertest.common.toml": "Example Mod Configs",
-  "tinyservertest.configuration.section.tinyservertest.common.toml.title": "Example Mod Configs",
-  "tinyservertest.configuration.items": "Item List",
-  "tinyservertest.configuration.logDirtBlock": "Log Dirt Block",
-  "tinyservertest.configuration.magicNumberIntroduction": "Magic Number Text",
-  "tinyservertest.configuration.magicNumber": "Magic Number"
+  "examplemod.configuration.title": "Example Mod Configs",
+  "examplemod.configuration.section.examplemod.common.toml": "Example Mod Configs",
+  "examplemod.configuration.section.examplemod.common.toml.title": "Example Mod Configs",
+  "examplemod.configuration.items": "Item List",
+  "examplemod.configuration.logDirtBlock": "Log Dirt Block",
+  "examplemod.configuration.magicNumberIntroduction": "Magic Number Text",
+  "examplemod.configuration.magicNumber": "Magic Number"
 }
