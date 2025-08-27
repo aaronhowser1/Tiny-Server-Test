@@ -33,8 +33,8 @@ public class ClientEventHandler {
 		s.setKeepAliveTimeout(Duration.ofSeconds(5L));
 		s.setMaxKeepAliveConnections(5);
 		s.get("/blocks", ClientEventHandler::getBlocks);
-		s.get("/blocks/{namespace}/<id>", ClientEventHandler::getBlockInfo);
-		s.post("/blocks/{x}/{y}/{z}/{namespace/<id>", ClientEventHandler::postBlock);
+//		s.get("/blocks/{namespace}/<id>", ClientEventHandler::getBlockInfo);
+		s.get("/blocks/{x}/{y}/{z}/{namespace}/<id>", ClientEventHandler::setBlock);
 
 		System.out.println("Started server at http://localhost:" + s.start());
 
@@ -59,10 +59,10 @@ public class ClientEventHandler {
 		return HTTPResponse.ok().text(String.format("Block: %s:%s", namespace, id));
 	}
 
-	public static HTTPResponse postBlock(HTTPRequest req) {
+	public static HTTPResponse setBlock(HTTPRequest req) {
 		var server = Minecraft.getInstance().getSingleplayerServer();
 		if (server == null) {
-			return HTTPStatus.INTERNAL_ERROR.text("No local server");
+			return HTTPStatus.NOT_FOUND.text("No local server");
 		}
 
 		String namespace = req.variable("namespace").asString();
